@@ -37,7 +37,7 @@ def price():
     box_keywords = ['box', 'display', 'etb', 'trainer box', 'collection', 'tin', 'deck', 'bundle']
 
     try:
-        with open('pokemon_cards_database (1).csv', mode='r', encoding='utf-8') as file:
+        with open('pokemon_cards_database.csv', mode='r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 title = row['title'].lower()
