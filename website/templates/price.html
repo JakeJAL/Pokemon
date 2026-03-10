@@ -4,233 +4,76 @@
 
 {% block extra_css %}
 <style>
-    .search-box {
-        display: grid;
-        grid-template-columns: 2fr auto;
-        gap: 1rem;
-        margin-bottom: 2rem;
+    .search-container { margin: 2rem 0; text-align: center; }
+    .filter-group {
+        display: flex; justify-content: center; gap: 10px;
+        max-width: 800px; margin: 0 auto;
     }
-    
-    .search-box select {
-        padding: 1rem;
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        font-size: 1rem;
-        transition: border-color 0.3s;
+    .search-bar { 
+        padding: 12px 25px; flex-grow: 1; border-radius: 30px; 
+        border: none; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
-    
-    .search-box select:focus {
-        outline: none;
-        border-color: #eab308;
+    .category-select {
+        padding: 12px 20px; border-radius: 30px; border: none;
+        background: white; font-weight: bold; cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
-    
-    .search-btn {
-        padding: 1rem 2rem;
-        background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
-        color: #0f172a;
-        border: none;
-        border-radius: 12px;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: transform 0.2s;
+    .price-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem; padding: 2rem 0;
     }
-    
-    .search-btn:hover {
-        transform: translateY(-2px);
-    }
-    
-    .price-results {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
-        margin-top: 2rem;
-    }
-    
     .price-card {
-        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
-        border-radius: 15px;
-        padding: 1.5rem;
-        position: relative;
-        overflow: hidden;
-        border: 2px solid #eab308;
+        background: white; border-radius: 15px; padding: 1.5rem;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1); transition: 0.3s;
+        display: flex; flex-direction: column; justify-content: space-between;
     }
-    
-    .price-card.best-price {
-        background: linear-gradient(135deg, #eab308 0%, #fbbf24 100%);
-        border: 2px solid #ca8a04;
+    .price-card:hover { transform: translateY(-5px); }
+    .price-tag { color: #2ecc71; font-weight: bold; font-size: 1.4rem; margin: 10px 0; }
+    .source-badge { 
+        background: #e1e7ff; color: #1e3a8a; padding: 4px 10px;
+        border-radius: 5px; font-size: 0.8rem; font-weight: bold; align-self: start;
     }
-    
-    .best-badge {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: #0f172a;
-        color: #eab308;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    
-    .store-name {
-        font-weight: 700;
-        font-size: 1.2rem;
-        margin-bottom: 0.5rem;
-        color: #eab308;
-    }
-    
-    .price-card.best-price .store-name {
-        color: #0f172a;
-    }
-    
-    .price {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #fbbf24;
-        margin: 1rem 0;
-    }
-    
-    .price-card.best-price .price {
-        color: #0f172a;
-    }
-    
-    .stock-status {
-        font-size: 0.9rem;
-        color: #cbd5e1;
-        margin-bottom: 1rem;
-    }
-    
-    .price-card.best-price .stock-status {
-        color: #1e293b;
-    }
-    
     .buy-btn {
-        width: 100%;
-        padding: 0.8rem;
-        background: #eab308;
-        color: #0f172a;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-    
-    .buy-btn:hover {
-        background: #fbbf24;
-    }
-    
-    .price-card.best-price .buy-btn {
-        background: #0f172a;
-        color: #eab308;
-    }
-    
-    .price-card.best-price .buy-btn:hover {
-        background: #1e293b;
-    }
-    
-    @media (max-width: 768px) {
-        .search-box {
-            grid-template-columns: 1fr;
-        }
+        display: block; width: 100%; text-align: center;
+        background: #1e3a8a; color: white; padding: 10px;
+        border-radius: 8px; text-decoration: none;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="section">
-    <h2 style="margin-bottom: 1.5rem; color: #333;">
-        <i class="fas fa-tags"></i> Compare Pack Prices
-    </h2>
-    
-    <div class="search-box">
-        <select id="priceSetSelect">
-            <option value="">Select a Set...</option>
+<div class="search-container">
+    <h2 style="color: white; margin-bottom: 1.5rem;">Find the Best Deals</h2>
+    <form action="/price" method="GET" class="filter-group">
+        <input type="text" name="query" class="search-bar" placeholder="Search product name..." value="{{ query }}">
+        
+        <select name="category" class="category-select" onchange="this.form.submit()">
+            <option value="all" {% if current_cat == 'all' %}selected{% endif %}>All Products</option>
+            <option value="single" {% if current_cat == 'single' %}selected{% endif %}>Singles (Cards)</option>
+            <option value="booster" {% if current_cat == 'booster' %}selected{% endif %}>Booster Packs</option>
+            <option value="box" {% if current_cat == 'box' %}selected{% endif %}>Boxes & ETBs</option>
+            <option value="other" {% if current_cat == 'other' %}selected{% endif %}>Other (Mats, Coins, etc.)</option>
         </select>
-        <button class="search-btn" onclick="comparePrices()">
-            <i class="fas fa-search"></i> Compare Prices
-        </button>
-    </div>
-    
-    <div id="priceLoading" class="loading" style="display: none;">
-        <i class="fas fa-spinner"></i>
-        <p>Finding the best prices...</p>
-    </div>
-    
-    <div id="priceResults" class="price-results"></div>
+    </form>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-    let allSets = [];
-    
-    // Load sets on page load
-    window.onload = async function() {
-        try {
-            const response = await fetch('/api/sets');
-            const sets = await response.json();
-            allSets = sets;
-            
-            // Populate price comparison select
-            const priceSelect = document.getElementById('priceSetSelect');
-            sets.forEach(set => {
-                const option = document.createElement('option');
-                option.value = set.id;
-                option.textContent = set.name;
-                priceSelect.appendChild(option);
-            });
-        } catch (error) {
-            console.error('Error loading sets:', error);
-        }
-    };
-    
-    // Price Comparison (placeholder)
-    async function comparePrices() {
-        const setId = document.getElementById('priceSetSelect').value;
-        if (!setId) {
-            alert('Please select a set');
-            return;
-        }
-        
-        const loading = document.getElementById('priceLoading');
-        const results = document.getElementById('priceResults');
-        
-        loading.style.display = 'block';
-        results.innerHTML = '';
-        
-        // Simulate API call - replace with actual implementation later
-        setTimeout(() => {
-            loading.style.display = 'none';
-            results.innerHTML = `
-                <div class="price-card best-price">
-                    <span class="best-badge">Best Price!</span>
-                    <div class="store-name">TCG Player</div>
-                    <div class="price">$3.99</div>
-                    <div class="stock-status">In Stock</div>
-                    <button class="buy-btn">View Deal</button>
-                </div>
-                <div class="price-card">
-                    <div class="store-name">Card Market</div>
-                    <div class="price">$4.49</div>
-                    <div class="stock-status">In Stock</div>
-                    <button class="buy-btn">View Deal</button>
-                </div>
-                <div class="price-card">
-                    <div class="store-name">eBay</div>
-                    <div class="price">$4.99</div>
-                    <div class="stock-status">Limited Stock</div>
-                    <button class="buy-btn">View Deal</button>
-                </div>
-                <div class="price-card">
-                    <div class="store-name">Amazon</div>
-                    <div class="price">$5.49</div>
-                    <div class="stock-status">In Stock</div>
-                    <button class="buy-btn">View Deal</button>
-                </div>
-            `;
-        }, 1500);
-    }
-</script>
+<div class="price-grid">
+    {% for item in items %}
+    <div class="price-card">
+        <div>
+            <span class="source-badge">{{ item.source }}</span>
+            <h3 style="margin: 10px 0; font-size: 1.1rem;">{{ item.title }}</h3>
+        </div>
+        <div>
+            <p class="price-tag">£{{ item.price }}</p>
+            <a href="{{ item.url }}" class="buy-btn" target="_blank">View Deal</a>
+        </div>
+    </div>
+    {% else %}
+    <div style="grid-column: 1/-1; text-align: center; color: white; padding: 3rem;">
+        <i class="fas fa-search" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+        <p>No matches found. Try changing your filters!</p>
+    </div>
+    {% endfor %}
+</div>
 {% endblock %}
