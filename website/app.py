@@ -109,6 +109,10 @@ def get_sets():
     sets = asyncio.run(sdk.set.list())
     return jsonify([{'id': s.id, 'name': s.name} for s in sets])
 
+@app.route('/collection')
+def collection():
+    return render_template('collection.html')
+
 @app.route('/api/cards', methods=['POST'])
 def get_cards():
     data = request.json
