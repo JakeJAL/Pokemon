@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - PokéPrice{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chatbot-container {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        height: 600px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+    }
+    
+    .message {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .message.user {
+        justify-content: flex-end;
+    }
+    
+    .message-content {
+        max-width: 70%;
+        padding: 1rem;
+        border-radius: 12px;
+    }
+    
+    .message.bot .message-content {
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        color: #eab308;
+        border: 2px solid #eab308;
+    }
+    
+    .message.user .message-content {
+        background: #eab308;
+        color: #0f172a;
+    }
+    
+    .chat-input-container {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .chat-input {
+        flex: 1;
+        padding: 1rem;
+        border: 2px solid #eab308;
+        border-radius: 12px;
+        font-size: 1rem;
+    }
+    
+    .chat-input:focus {
+        outline: none;
+        border-color: #fbbf24;
+    }
+    
+    .send-btn {
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+        color: #0f172a;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chatbot-container">
+    <h2 style="margin-bottom: 1rem; color: #333;">
+        <i class="fas fa-robot"></i> Pokemon TCG Assistant
+    </h2>
+    
+    <div class="chat-messages" id="chatMessages">
+        <div class="message bot">
+            <div class="message-content">
+                Hi! I'm your Pokemon TCG assistant. Ask me anything about cards, sets, prices, or game rules!
+            </div>
+        </div>
+    </div>
+    
+    <div class="chat-input-container">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Ask me anything..." onkeypress="handleChatKeypress(event)">
+        <button class="send-btn" onclick="sendMessage()">
+            <i class="fas fa-paper-plane"></i> Send
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Chatbot
+    function handleChatKeypress(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+    
+    function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        
+        if (!message) return;
+        
+        const messagesContainer = document.getElementById('chatMessages');
+        
+        // Add user message
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message user';
+        userMsg.innerHTML = `<div class="message-content">${message}</div>`;
+        messagesContainer.appendChild(userMsg);
+        
+        input.value = '';
+        
+        // Simulate bot response - replace with actual implementation later
+        setTimeout(() => {
+            const botMsg = document.createElement('div');
+            botMsg.className = 'message bot';
+            botMsg.innerHTML = `<div class="message-content">Thanks for your question! This feature is coming soon. I'll be able to help you with card information, pricing, and game rules.</div>`;
+            messagesContainer.appendChild(botMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 1000);
+        
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+</script>
+{% endblock %}
