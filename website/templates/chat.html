@@ -128,16 +128,73 @@
         
         input.value = '';
         
-        // Simulate bot response - replace with actual implementation later
-        setTimeout(() => {
-            const botMsg = document.createElement('div');
-            botMsg.className = 'message bot';
-            botMsg.innerHTML = `<div class="message-content">Thanks for your question! This feature is coming soon. I'll be able to help you with card information, pricing, and game rules.</div>`;
-            messagesContainer.appendChild(botMsg);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }, 1000);
-        
+        // Show typing indicator
+        const typingMsg = document.createElement('div');
+        typingMsg.className = 'message bot typing';
+        typingMsg.innerHTML = `<div class="message-content">Searching...</div>`;
+        messagesContainer.appendChild(typingMsg);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Send to chatbot API
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: message,
+                top_n: 5
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove typing indicator
+            messagesContainer.removeChild(typingMsg);
+            
+            if (data.error) {
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'message bot';
+                errorMsg.innerHTML = `<div class="message-content">❌ ${data.error}</div>`;
+                messagesContainer.appendChild(errorMsg);
+            } else {
+                // Add bot response
+                const botMsg = document.createElement('div');
+                botMsg.className = 'message bot';
+                
+                let content = `<div class="message-content">${data.response}`;
+                
+                // Add results if available
+                if (data.results && data.results.length > 0) {
+                    content += '<div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.3);">';
+                    data.results.forEach(card => {
+                        content += `
+                            <div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                                <strong>${card.title}</strong><br>
+                                <span style="color: #fbbf24;">£${card.price}</span> - ${card.source}<br>
+                                <a href="${card.url}" target="_blank" style="color: #fbbf24; text-decoration: underline;">View Product</a>
+                            </div>
+                        `;
+                    });
+                    content += '</div>';
+                }
+                
+                content += '</div>';
+                botMsg.innerHTML = content;
+                messagesContainer.appendChild(botMsg);
+            }
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        })
+        .catch(error => {
+            // Remove typing indicator
+            messagesContainer.removeChild(typingMsg);
+            
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'message bot';
+            errorMsg.innerHTML = `<div class="message-content">❌ Sorry, something went wrong. Please try again.</div>`;
+            messagesContainer.appendChild(errorMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
     }
 </script>
 {% endblock %}

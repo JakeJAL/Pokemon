@@ -4,9 +4,23 @@ from tcgdexsdk.enums import Quality, Extension
 import asyncio
 import csv
 import re
+from database_querier import PokemonCardSearch, OpenAIClient
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 sdk = TCGdex()
+
+# Initialize the Pokemon card search system
+try:
+    llm = OpenAIClient(model="gpt-3.5-turbo")
+    pokemon_searcher = PokemonCardSearch("pokemon_cards_database.csv", llm)
+except Exception as e:
+    print(f"Error initializing Pokemon search system: {e}")
+    pokemon_searcher = None
 
 @app.route('/')
 def index():
@@ -62,6 +76,33 @@ def search():
 @app.route('/chat')
 def chat():
     return render_template('chat.html')
+
+@app.route('/api/chat', methods=['POST'])
+def chat_api():
+    """API endpoint for Pokemon card chatbot"""
+    if not pokemon_searcher:
+        return jsonify({
+            'error': 'Chatbot not available. Check API key configuration.'
+        }), 500
+    
+    data = request.json
+    user_message = data.get('message', '')
+    top_n = data.get('top_n', 5)
+    
+    if not user_message:
+        return jsonify({'error': 'No message provided'}), 400
+    
+    try:
+        result = pokemon_searcher.query(user_message, top_n=top_n)
+        return jsonify({
+            'response': result['response'],
+            'results': result['results'],
+            'num_results': result['num_results']
+        })
+    except Exception as e:
+        return jsonify({
+            'error': f'Sorry, I encountered an error: {str(e)}'
+        }), 500
 
 @app.route('/api/sets', methods=['GET'])
 def get_sets():
