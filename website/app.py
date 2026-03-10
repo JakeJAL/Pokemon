@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify
 from tcgdexsdk import TCGdex, Query
 from tcgdexsdk.enums import Quality, Extension
 import asyncio
+import csv
+import re
 from database_querier import PokemonCardSearch, OpenAIClient
 from dotenv import load_dotenv
 import os
@@ -26,7 +28,46 @@ def index():
 
 @app.route('/price')
 def price():
-    return render_template('price.html')
+    search_query = request.args.get('query', '').lower()
+    category = request.args.get('category', 'all')
+    items = []
+    
+    # Smart detection keywords
+    pack_keywords = ['pack', 'booster pack', 'sleeved', 'blister']
+    box_keywords = ['box', 'display', 'etb', 'trainer box', 'collection', 'tin', 'deck', 'bundle']
+
+    try:
+        with open('pokemon_cards_database.csv', mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                title = row['title'].lower()
+                
+                if search_query not in title:
+                    continue
+                
+                # CATEGORY LOGIC
+                is_pack = any(word in title for word in pack_keywords)
+                is_box = any(word in title for word in box_keywords)
+                # Regex looks for patterns like 123/456 or 01/10
+                is_single = bool(re.search(r'\d+/\d+', title)) or (not is_pack and not is_box and any(x in title for x in [' v ', ' vmax', ' ex ', ' star', ' rare']))
+
+                # Filtering based on selection
+                if category == 'booster' and not is_pack:
+                    continue
+                elif category == 'box' and not is_box:
+                    continue
+                elif category == 'single' and not is_single:
+                    continue
+                elif category == 'other':
+                    # If it's not a pack, box, or single, it goes to 'Other'
+                    if is_pack or is_box or is_single:
+                        continue
+                        
+                items.append(row)
+    except FileNotFoundError:
+        print("CSV file missing!")
+
+    return render_template('price.html', items=items, query=search_query, current_cat=category)
 
 @app.route('/search')
 def search():
@@ -67,6 +108,10 @@ def chat_api():
 def get_sets():
     sets = asyncio.run(sdk.set.list())
     return jsonify([{'id': s.id, 'name': s.name} for s in sets])
+
+@app.route('/collection')
+def collection():
+    return render_template('collection.html')
 
 @app.route('/api/cards', methods=['POST'])
 def get_cards():
