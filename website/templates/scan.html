@@ -21,15 +21,42 @@
     </div>
 
     <div id="resultArea" style="margin-top: 3rem; display: none; background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 20px; backdrop-filter: blur(10px);">
-        <h3 style="margin-bottom: 0.5rem;">I think I found:</h3>
-        <h2 id="detectedName" style="color: #eab308; font-size: 2rem; margin-bottom: 1.5rem;">...</h2>
-        <button onclick="window.location.href='/price?query=' + document.getElementById('detectedName').innerText" class="buy-btn">
-            Find Best Price
-        </button>
+        <h3 style="margin-bottom: 0.5rem;">I found this card:</h3>
+        <div id="cardImageContainer" style="margin: 1rem auto; display: none;">
+            <img id="cardImage" style="max-width: 200px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);" />
+        </div>
+        <h2 id="detectedName" style="color: #eab308; font-size: 2rem; margin-bottom: 0.5rem;">...</h2>
+        <div id="cardDetails" style="color: white; margin-bottom: 1.5rem; font-size: 1.1rem;">
+            <p id="cardNumber" style="margin: 0.3rem 0;"></p>
+            <p id="cardSet" style="margin: 0.3rem 0;"></p>
+            <p id="cardHP" style="margin: 0.3rem 0;"></p>
+            <p id="cardRarity" style="margin: 0.3rem 0;"></p>
+        </div>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <button onclick="searchPrice()" class="buy-btn" style="background: #eab308;">
+                <i class="fas fa-search"></i> Find Best Price
+            </button>
+            <button onclick="addToVault()" class="buy-btn" style="background: #10b981;">
+                <i class="fas fa-box-open"></i> Add to Vault
+            </button>
+        </div>
     </div>
 </div>
 
 <style>
+    .scanner-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 250px;
+        height: 350px;
+        border: 3px solid #eab308;
+        border-radius: 15px;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* Dims the area outside the box */
+        pointer-events: none;
+        z-index: 10;
+}
     @keyframes scanAnim {
         0% { top: 0%; }
         100% { top: 100%; }
@@ -43,6 +70,8 @@
     const resultArea = document.getElementById('resultArea');
     const detectedName = document.getElementById('detectedName');
     const scannerLine = document.getElementById('scannerLine');
+    
+    let currentCardData = null;
 
     // 1. Get Access to Camera
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
@@ -79,12 +108,83 @@
             snap.innerHTML = '<i class="fas fa-bolt"></i> ANALYZE CARD';
             
             if(data.success) {
-                resultArea.style.display = 'block';
-                detectedName.innerText = data.name;
+                currentCardData = data;
+                displayCardInfo(data);
             } else {
                 alert("Oh no! I couldn't read that one. Try holding it flatter! 🌈");
             }
         });
     });
+    
+    function displayCardInfo(data) {
+        resultArea.style.display = 'block';
+        detectedName.innerText = data.name;
+        
+        // Show card image if available
+        const cardImageContainer = document.getElementById('cardImageContainer');
+        const cardImage = document.getElementById('cardImage');
+        if (data.image) {
+            cardImage.src = data.image;
+            cardImageContainer.style.display = 'block';
+        } else {
+            cardImageContainer.style.display = 'none';
+        }
+        
+        // Display card details
+        const cardNumber = document.getElementById('cardNumber');
+        const cardSet = document.getElementById('cardSet');
+        const cardHP = document.getElementById('cardHP');
+        const cardRarity = document.getElementById('cardRarity');
+        
+        if (data.card_number) {
+            cardNumber.innerHTML = '<i class="fas fa-hashtag"></i> Card Number: <strong>' + data.card_number + '</strong>';
+            cardNumber.style.display = 'block';
+        } else {
+            cardNumber.style.display = 'none';
+        }
+        
+        if (data.set_name) {
+            cardSet.innerHTML = '<i class="fas fa-layer-group"></i> Set: <strong>' + data.set_name + '</strong>';
+            cardSet.style.display = 'block';
+        } else {
+            cardSet.style.display = 'none';
+        }
+        
+        if (data.hp) {
+            cardHP.innerHTML = '<i class="fas fa-heart"></i> HP: <strong>' + data.hp + '</strong>';
+            cardHP.style.display = 'block';
+        } else {
+            cardHP.style.display = 'none';
+        }
+        
+        if (data.rarity) {
+            cardRarity.innerHTML = '<i class="fas fa-star"></i> Rarity: <strong>' + data.rarity + '</strong>';
+            cardRarity.style.display = 'block';
+        } else {
+            cardRarity.style.display = 'none';
+        }
+    }
+    
+    function searchPrice() {
+        if (currentCardData) {
+            const searchQuery = currentCardData.name + (currentCardData.card_number ? ' ' + currentCardData.card_number : '');
+            window.location.href = '/price?query=' + encodeURIComponent(searchQuery);
+        }
+    }
+    
+    function addToVault() {
+        if (currentCardData && currentCardData.card_number && currentCardData.set_id) {
+            // Add to localStorage collection
+            let collection = JSON.parse(localStorage.getItem('myCollection') || '{}');
+            const uniqueId = currentCardData.card_number + currentCardData.set_id;
+            collection[uniqueId] = true;
+            localStorage.setItem('myCollection', JSON.stringify(collection));
+            
+            // Show confirmation
+            alert('✨ ' + currentCardData.name + ' added to your vault!');
+        } else {
+            alert('⚠️ Need more card details to add to vault. Try scanning again!');
+        }
+    }
 </script>
 {% endblock %}

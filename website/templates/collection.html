@@ -84,7 +84,10 @@
         fetch('/api/cards', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ set_id: setId })
+            body: JSON.stringify({ 
+                set_id: setId,
+                per_page: 0  // Get all cards, no pagination
+            })
         })
         .then(res => res.json())
         .then(cards => {
