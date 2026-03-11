@@ -133,18 +133,18 @@ def scrape_hills_cards():
             if all_titles[i][:7] != 'Pokemon':
                 continue
             else:
-                row_dict = {'title': all_titles[i][27:], 'url': all_links[i], 'price': 'N/A'}
+                row_dict = {'title': all_titles[i][27:], 'url': all_links[i], 'price': 'Check for price'}
                 dict_list.append(row_dict)
         
         # Scrape individual product pages for prices
         for idx, row_dict in enumerate(dict_list):
-            time.sleep(1)  # Be respectful to the server
+            time.sleep(15)  # Be respectful to the server
             url = row_dict['url']
             logger.info(f"Scraping price for product {idx + 1}/{len(dict_list)}")
             
             resp = retry_request(url)
             if not resp:
-                logger.warning(f"Failed to retrieve price for {url}. Setting price to N/A.")
+                logger.warning(f"Failed to retrieve price for {url}. Setting price to 'Check for price'")
                 continue
             
             try:
@@ -154,7 +154,7 @@ def scrape_hills_cards():
                     if price_elem:
                         row_dict['price'] = price_elem.text.replace('\n','').strip()[1:]
             except Exception as e:
-                logger.warning(f"Error parsing price for {url}: {e}. Setting price to N/A.")
+                logger.warning(f"Error parsing price for {url}: {e}. Setting price to 'Check for price'")
 
         hills_cards_df = pd.DataFrame(dict_list)
         hills_cards_df['source'] = 'HillsCards'
