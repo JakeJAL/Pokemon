@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <style>
-    /* 1. Making the container Gigantamax-sized! */
+    /* Enhanced chatbot container - larger and more spacious */
     .chatbot-container {
         background: white;
         border-radius: 20px;
@@ -56,7 +56,7 @@
         color: #0f172a;
     }
 
-    /* 2. The Grid System for the cards */
+    /* Enhanced grid system for the cards */
     .card-result-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -93,6 +93,11 @@
         font-size: 1rem;
     }
     
+    .chat-input:focus {
+        outline: none;
+        border-color: #fbbf24;
+    }
+    
     .send-btn {
         padding: 1rem 2rem;
         background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
@@ -108,19 +113,20 @@
 {% block content %}
 <div class="chatbot-container">
     <h2 style="margin-bottom: 1rem; color: #333;">
-        <i class="fas fa-robot"></i> Pokemon TCG Assistant
+        <img src="{{ url_for('static', filename='prof_oak.png') }}" alt="Professor Oak" style="width: 100px; height: auto; max-width: 100%; object-fit: contain; vertical-align: middle; margin-right: 0.5rem;">
+        Professor Oak - Pokemon TCG Assistant
     </h2>
     
     <div class="chat-messages" id="chatMessages">
         <div class="message bot">
             <div class="message-content">
-                Hi! I'm Tinka! ✨ Ask me anything about cards or prices, and I'll find the best deals for you!
+                Greetings, young trainer! I'm Professor Oak, your Pokemon TCG research assistant. Ask me anything about cards, sets, prices, or game rules!
             </div>
         </div>
     </div>
     
     <div class="chat-input-container">
-        <input type="text" class="chat-input" id="chatInput" placeholder="Try searching 'Pikachu'..." onkeypress="handleChatKeypress(event)">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Ask me anything..." onkeypress="handleChatKeypress(event)">
         <button class="send-btn" onclick="sendMessage()">
             <i class="fas fa-paper-plane"></i> Send
         </button>
@@ -130,53 +136,69 @@
 
 {% block scripts %}
 <script>
+    // Chatbot
     function handleChatKeypress(event) {
-        if (event.key === 'Enter') sendMessage();
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
     }
     
     function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            if (!message) return;
-            
-            // --- NEW: Grab the collection from localStorage ---
-            const myVault = JSON.parse(localStorage.getItem('myCollection') || '{}');
-            
-            const messagesContainer = document.getElementById('chatMessages');
-            
-            // Add user message to UI
-            const userMsg = document.createElement('div');
-            userMsg.className = 'message user';
-            userMsg.innerHTML = `<div class="message-content">${message}</div>`;
-            messagesContainer.appendChild(userMsg);
-            input.value = '';
-            
-            // Show typing indicator
-            const typingMsg = document.createElement('div');
-            typingMsg.className = 'message bot';
-            typingMsg.innerHTML = `<div class="message-content">Checking my Pokédex...</div>`;
-            messagesContainer.appendChild(typingMsg);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            // --- UPDATED: Send the message AND the collection ---
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    message: message, 
-                    top_n: 6,
-                    collection: myVault  // <--- This is the secret sauce!
-                })
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        
+        if (!message) return;
+        
+        // NEW: Grab the collection from localStorage
+        const myVault = JSON.parse(localStorage.getItem('myCollection') || '{}');
+        
+        const messagesContainer = document.getElementById('chatMessages');
+        
+        // Add user message
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message user';
+        userMsg.innerHTML = `<div class="message-content">${message}</div>`;
+        messagesContainer.appendChild(userMsg);
+        
+        input.value = '';
+        
+        // Show typing indicator
+        const typingMsg = document.createElement('div');
+        typingMsg.className = 'message bot typing';
+        typingMsg.innerHTML = `<div class="message-content">Searching...</div>`;
+        messagesContainer.appendChild(typingMsg);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Send to chatbot API with collection data
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: message,
+                top_n: 6,
+                collection: myVault  // Collection integration
             })
-            .then(response => response.json())
-            .then(data => {
-                messagesContainer.removeChild(typingMsg);
-                
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove typing indicator
+            messagesContainer.removeChild(typingMsg);
+            
+            if (data.error) {
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'message bot';
+                errorMsg.innerHTML = `<div class="message-content">❌ ${data.error}</div>`;
+                messagesContainer.appendChild(errorMsg);
+            } else {
+                // Add bot response
                 const botMsg = document.createElement('div');
                 botMsg.className = 'message bot';
                 
                 let content = `<div class="message-content">${data.response}`;
                 
+                // Add results with enhanced card grid display
                 if (data.results && data.results.length > 0) {
                     content += '<div class="card-result-grid">';
                     data.results.forEach(card => {
@@ -195,8 +217,20 @@
                 content += '</div>';
                 botMsg.innerHTML = content;
                 messagesContainer.appendChild(botMsg);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            });
-        }
+            }
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        })
+        .catch(error => {
+            // Remove typing indicator
+            messagesContainer.removeChild(typingMsg);
+            
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'message bot';
+            errorMsg.innerHTML = `<div class="message-content">❌ Sorry, something went wrong. Please try again.</div>`;
+            messagesContainer.appendChild(errorMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+    }
 </script>
 {% endblock %}

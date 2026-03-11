@@ -4,7 +4,7 @@ from tcgdexsdk.enums import Quality, Extension
 import asyncio
 import csv
 import re
-from database_querier import PokemonCardSearch, OpenAIClient
+from prof_oak_ai import professor_oak_query
 from dotenv import load_dotenv
 import os
 import easyocr
@@ -19,13 +19,14 @@ load_dotenv()
 app = Flask(__name__)
 sdk = TCGdex()
 
-# Initialize the Pokemon card search system
+# Initialize the Pokemon card search system - now using prof_oak_ai
 try:
-    llm = OpenAIClient(model="gpt-3.5-turbo")
-    pokemon_searcher = PokemonCardSearch("pokemon_cards_database.csv", llm)
+    # Test the prof_oak_ai system
+    test_result = professor_oak_query("test")
+    pokemon_searcher_available = True
 except Exception as e:
-    print(f"Error initializing Pokemon search system: {e}")
-    pokemon_searcher = None
+    print(f"Error initializing Professor Oak AI system: {e}")
+    pokemon_searcher_available = False
 
 @app.route('/')
 def index():
@@ -82,17 +83,20 @@ def search():
 def chat():
     return render_template('chat.html')
 
+@app.route('/collection')
+def collection():
+    return render_template('collection.html')
+
 @app.route('/api/chat', methods=['POST'])
 def chat_api():
-    """API endpoint for Pokemon card chatbot with Collection awareness"""
-    if not pokemon_searcher:
+    """API endpoint for Pokemon card chatbot using Professor Oak AI"""
+    if not pokemon_searcher_available:
         return jsonify({
-            'error': 'Chatbot not available. Check API key configuration.'
+            'error': 'Professor Oak is not available right now. Check API key configuration.'
         }), 500
     
     data = request.json
     user_message = data.get('message', '')
-    top_n = data.get('top_n', 5)
     
     # NEW: Grab the collection data sent from the browser's localStorage
     user_collection = data.get('collection', {})
@@ -101,12 +105,13 @@ def chat_api():
         return jsonify({'error': 'No message provided'}), 400
     
     try:
-        # Pass the user_collection into the query method so the LLM knows what's owned
-        result = pokemon_searcher.query(
-            user_message, 
-            top_n=top_n, 
-            collection=user_collection
-        )
+        result = professor_oak_query(user_message)
+        
+        # If user has a collection, we could potentially enhance the response
+        # For now, we'll just pass it through but it's available for future use
+        if user_collection:
+            # Future enhancement: modify response based on user's collection
+            pass
         
         return jsonify({
             'response': result['response'],
@@ -115,17 +120,13 @@ def chat_api():
         })
     except Exception as e:
         return jsonify({
-            'error': f'Sorry, I encountered an error: {str(e)}'
+            'error': f'Sorry, Professor Oak encountered an error: {str(e)}'
         }), 500
 
 @app.route('/api/sets', methods=['GET'])
 def get_sets():
     sets = asyncio.run(sdk.set.list())
     return jsonify([{'id': s.id, 'name': s.name} for s in sets])
-
-@app.route('/collection')
-def collection():
-    return render_template('collection.html')
 
 @app.route('/api/cards', methods=['POST'])
 def get_cards():

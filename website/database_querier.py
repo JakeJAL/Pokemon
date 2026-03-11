@@ -163,18 +163,18 @@ Provide a helpful response that:
 
 Be friendly and encouraging."""
         else:
-            num_results = len(results)
+            results_text = "\n".join([
+                f"- {row['title']}: £{row['price']} ({row['source']}) - {row['url']}"
+                for _, row in results.iterrows()
+            ])
             
             prompt = f"""The user asked: "{user_query}"
 
-We found {num_results} matching Pokemon card options in our database.
+Here are the matching Pokemon cards from our database:
 
-Provide a SHORT, friendly intro message (1-2 sentences max) that:
-1. Acknowledges what they searched for
-2. Mentions we found results (don't list them - they'll be shown in a grid below)
-3. Encourages them to check out the options
+{results_text}
 
-DO NOT list the individual products or prices. Just a brief intro."""
+Provide a helpful, friendly response presenting these options to the user. Include prices and mention they can click the links for more details."""
         
         return self.llm_client.generate(prompt)
     

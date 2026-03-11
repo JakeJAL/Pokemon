@@ -205,3 +205,19 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project-specific files
+# Test files and debugging scripts
+test_*.py
+debug_*.py
+*_test.py
+*_debug.py
+verify_*.py
+simple_*.py
+
+# ChromaDB database files (uncomment to exclude from version control)
+# chroma_db/
+
+# Temporary files
+*.tmp
+*.temp
