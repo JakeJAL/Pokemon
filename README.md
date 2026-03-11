@@ -8,10 +8,12 @@ A comprehensive Pokémon Trading Card Game (TCG) assistant powered by AI that he
 - **Comprehensive Database**: Access to 22,754+ Pokémon cards from TCGdx API
 - **Smart Query Processing**: Handles specific Pokémon searches, rarity queries, and set information
 - **Store Integration**: Find where to buy cards with real pricing data
+- **Price Sorting**: Sort results by price (ascending or descending) for better deal finding
 - **Vector Search**: ChromaDB-powered semantic search for accurate results
 - **Card Scanning**: OCR-powered card recognition using EasyOCR and OpenCV
 - **Collection Management**: Track your personal card collection
 - **Price Filtering**: Search for products within specific price ranges
+- **Category Filtering**: Filter by singles, booster packs, boxes, or other products
 - **Web Scraping**: Automated price data collection from online stores
 - **Web Interface**: Clean, responsive chat interface with Professor Oak theme
 
@@ -48,7 +50,8 @@ Pokemon/                       # Main application directory
 ### Prerequisites
 
 - Python 3.8+
-- OpenAI API key (or compatible API endpoint)
+- OpenAI API key (or compatible API endpoint like Google Gemini)
+- Internet connection (for downloading OCR models on first run)
 
 ### Installation
 
@@ -62,6 +65,8 @@ Pokemon/                       # Main application directory
    ```bash
    pip install -r requirements.txt
    ```
+   
+   Note: First-time installation may take several minutes as EasyOCR downloads language models.
 
 3. **Set up environment variables**
    Create a `.env` file in the Pokemon directory:
@@ -69,20 +74,33 @@ Pokemon/                       # Main application directory
    API_KEY=your_openai_api_key_here
    ENDPOINT=https://api.openai.com/v1
    ```
+   
+   For Google Gemini or other providers, update the ENDPOINT accordingly.
 
-4. **Verify data files**
+4. **Initialize ChromaDB (if needed)**
+   If you encounter ChromaDB schema errors, delete and recreate the database:
+   ```bash
+   # Windows PowerShell
+   Remove-Item -Recurse -Force chroma_db
+   
+   # Linux/Mac
+   rm -rf chroma_db
+   ```
+   
+   The database will be automatically recreated on first run.
+
+5. **Verify data files**
    Ensure these files exist:
    - `all_cards.json` (22,754+ Pokémon cards)
-   - `chroma_db/` directory (vector embeddings)
    - `website/pokemon_cards_database.csv` (store pricing data)
 
-5. **Run the application**
+6. **Run the application**
    ```bash
    cd website
    python app.py
    ```
 
-6. **Access the application**
+7. **Access the application**
    Open your browser and go to `http://localhost:5000`
 
 ## Usage
@@ -97,6 +115,15 @@ Navigate to the chat page and ask Professor Oak questions like:
 - **Pricing**: "Cheapest Pokémon booster packs"
 - **Price Ranges**: "Show me cards under £20"
 - **General Info**: "What's the newest Pokémon set?"
+
+### Price Comparison
+
+Use the price page to:
+- Search for products by name
+- Filter by category (singles, booster packs, boxes, other)
+- Sort by price (low to high or high to low)
+- Compare prices across multiple stores
+- Find the best deals on cards and products
 
 ### Card Scanning
 
@@ -176,7 +203,11 @@ Responses include:
 - `GET /` - Home page
 - `GET /chat` - Chat interface
 - `GET /search` - Card search page
-- `GET /price` - Price search page with category filtering
+- `GET /price?query=<search>&category=<filter>&sort=<order>` - Price search page with category filtering and sorting
+  - Parameters:
+    - `query`: Search term (optional)
+    - `category`: all, single, booster, box, other (default: all)
+    - `sort`: asc (low to high) or desc (high to low) (default: asc)
 - `GET /scan` - Card scanning page
 - `GET /collection` - Collection management page
 - `POST /api/chat` - Chat API endpoint (accepts collection data)
@@ -206,11 +237,15 @@ Responses include:
 
 1. **"No cards found"**: Check if `all_cards.json` exists and is properly formatted
 2. **API Errors**: Verify API key and endpoint in `.env` file
-3. **ChromaDB Issues**: Regenerate embeddings if database is corrupted
+3. **ChromaDB Schema Error** (`no such column: collections.topic`): 
+   - Delete the `chroma_db` folder and restart the app
+   - The database will be recreated automatically
+   - This happens when ChromaDB version changes
 4. **Import Errors**: Ensure all dependencies are installed (`pip install -r requirements.txt`)
 5. **OCR Not Working**: EasyOCR downloads models on first run - ensure internet connection
 6. **Camera Access Denied**: Check browser permissions for camera access
 7. **Slow Performance**: EasyOCR and ChromaDB may be slow on first run while loading models
+8. **Price Sorting Not Working**: Ensure CSV file has valid numeric price values
 
 ### Debug Mode
 
