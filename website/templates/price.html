@@ -18,6 +18,11 @@
         background: white; font-weight: bold; cursor: pointer;
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
+    .sort-select {
+        padding: 12px 20px; border-radius: 30px; border: none;
+        background: white; font-weight: bold; cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
     .price-grid {
         display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 1.5rem; padding: 2rem 0;
@@ -53,6 +58,11 @@
             <option value="booster" {% if current_cat == 'booster' %}selected{% endif %}>Booster Packs</option>
             <option value="box" {% if current_cat == 'box' %}selected{% endif %}>Boxes & ETBs</option>
             <option value="other" {% if current_cat == 'other' %}selected{% endif %}>Other (Mats, Coins, etc.)</option>
+        </select>
+        
+        <select name="sort" class="sort-select" onchange="this.form.submit()">
+            <option value="asc" {% if current_sort == 'asc' %}selected{% endif %}>💰 Price: Low to High</option>
+            <option value="desc" {% if current_sort == 'desc' %}selected{% endif %}>💎 Price: High to Low</option>
         </select>
     </form>
 </div>
