@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount ChromaDB data for persistence
+      - ./chroma_db:/app/chroma_db
+      # Mount CSV database
+      - ./pokemon_cards_database.csv:/app/pokemon_cards_database.csv
+      # Mount all_cards.json
+      - ./all_cards.json:/app/all_cards.json
+    environment:
+      - FLASK_ENV=production
+      - API_KEY=${API_KEY}
+      - ENDPOINT=${ENDPOINT}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    env_file:
+      - .env
+    restart: unless-stopped
