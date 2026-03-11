@@ -9,6 +9,10 @@ A comprehensive Pokémon Trading Card Game (TCG) assistant powered by AI that he
 - **Smart Query Processing**: Handles specific Pokémon searches, rarity queries, and set information
 - **Store Integration**: Find where to buy cards with real pricing data
 - **Vector Search**: ChromaDB-powered semantic search for accurate results
+- **Card Scanning**: OCR-powered card recognition using EasyOCR and OpenCV
+- **Collection Management**: Track your personal card collection
+- **Price Filtering**: Search for products within specific price ranges
+- **Web Scraping**: Automated price data collection from online stores
 - **Web Interface**: Clean, responsive chat interface with Professor Oak theme
 
 ## Project Structure
@@ -16,13 +20,18 @@ A comprehensive Pokémon Trading Card Game (TCG) assistant powered by AI that he
 ```
 Pokemon/                       # Main application directory
 ├── website/                   # Flask web application
-│   ├── app.py                # Main Flask application
+│   ├── app.py                # Main Flask application with all routes
 │   ├── prof_oak_ai.py        # AI assistant logic and card search
+│   ├── pokemon_search.py     # Card search system with LLM integration
+│   ├── database_querier.py   # Database query handler with OpenAI
+│   ├── website_scraper.py    # Web scraper for price data collection
 │   ├── templates/            # HTML templates
 │   │   ├── base.html        # Base template
 │   │   ├── chat.html        # Chat interface
 │   │   ├── home.html        # Home page
+│   │   ├── collection.html  # Collection management page
 │   │   ├── price.html       # Price search page
+│   │   ├── scan.html        # Card scanning page
 │   │   └── search.html      # Card search page
 │   ├── static/              # Static assets
 │   │   └── prof_oak.png     # Professor Oak avatar
@@ -86,6 +95,22 @@ Navigate to the chat page and ask Professor Oak questions like:
 - **Rare Cards**: "Find rare Charizard cards"
 - **Sets**: "What are the best booster packs?"
 - **Pricing**: "Cheapest Pokémon booster packs"
+- **Price Ranges**: "Show me cards under £20"
+- **General Info**: "What's the newest Pokémon set?"
+
+### Card Scanning
+
+Use the scan page to:
+- Take photos of your cards using your device camera
+- Automatically recognize card names using OCR technology
+- Quickly add cards to your collection
+
+### Collection Management
+
+Track your personal card collection:
+- Mark cards as owned in your vault
+- View your collection statistics
+- Get personalized recommendations based on your collection
 
 ### Query Types
 
@@ -95,6 +120,9 @@ The system handles several types of queries:
 2. **Rarity-Based**: Finds rare, ultra rare, or secret rare cards
 3. **Set Queries**: Information about card sets and booster packs
 4. **Product Searches**: Store availability and pricing
+5. **Price-Constrained**: Searches within specific price ranges (over/under/between)
+6. **General Information**: Latest sets, release dates, and TCG information
+7. **Collection-Based**: Personalized responses based on your collection
 
 ### Response Format
 
@@ -111,29 +139,50 @@ Responses include:
 - **Dual Search System**: Direct JSON search for specific Pokémon + ChromaDB for semantic search
 - **Store Integration**: Matches cards with available products and pricing
 - **Response Formatting**: Ensures proper line breaks and bullet points
+- **Price Parsing**: Extracts and handles price constraints from natural language
+- **Set Information**: Provides detailed information about TCG sets and releases
+
+### Card Recognition (`app.py` with EasyOCR)
+
+- **OCR Technology**: Uses EasyOCR for text recognition from card images
+- **Image Processing**: OpenCV for image preprocessing and enhancement
+- **Fuzzy Matching**: Finds closest card matches from detected text
+- **Real-time Scanning**: Camera integration for instant card recognition
 
 ### Database Systems
 
 - **JSON Database**: Complete card data from TCGdx (22,754+ cards)
 - **ChromaDB**: Vector embeddings for semantic search
 - **CSV Store Data**: Real pricing and availability information
+- **Pandas Integration**: Efficient data filtering and sorting
+
+### Web Scraping (`website_scraper.py`)
+
+- **Automated Collection**: Scrapes pricing data from online stores
+- **Prefect Workflows**: Orchestrated data collection tasks
+- **BeautifulSoup**: HTML parsing for product information
+- **Data Validation**: Ensures pricing data accuracy
 
 ### Web Application (`app.py`)
 
 - **Flask Framework**: Lightweight web server
-- **API Endpoints**: RESTful endpoints for chat and search
+- **API Endpoints**: RESTful endpoints for chat, search, and scanning
 - **Template System**: Jinja2 templates with responsive design
 - **Static Assets**: Images and styling
+- **Async Support**: Handles TCGdx API calls efficiently
 
 ## API Endpoints
 
 - `GET /` - Home page
 - `GET /chat` - Chat interface
 - `GET /search` - Card search page
-- `GET /price` - Price search page
-- `POST /api/chat` - Chat API endpoint
+- `GET /price` - Price search page with category filtering
+- `GET /scan` - Card scanning page
+- `GET /collection` - Collection management page
+- `POST /api/chat` - Chat API endpoint (accepts collection data)
+- `POST /api/scan` - Card scanning API endpoint
 - `GET /api/sets` - Available card sets
-- `GET /api/cards` - Card search API
+- `POST /api/cards` - Card search API with sorting and pagination
 
 ## Configuration
 
@@ -144,10 +193,12 @@ Responses include:
 
 ### Customization
 
-- **Model Selection**: Change AI model in `prof_oak_ai.py`
+- **Model Selection**: Change AI model in `prof_oak_ai.py` (default: google/gemini-2.5-flash)
 - **Response Limits**: Adjust card count limits in prompts
 - **Store Data**: Update `pokemon_cards_database.csv` for pricing
 - **Styling**: Modify templates and CSS for appearance
+- **OCR Settings**: Configure EasyOCR language support and confidence thresholds
+- **Price Constraints**: Modify price parsing logic in `prof_oak_ai.py`
 
 ## Troubleshooting
 
@@ -155,8 +206,11 @@ Responses include:
 
 1. **"No cards found"**: Check if `all_cards.json` exists and is properly formatted
 2. **API Errors**: Verify API key and endpoint in `.env` file
-3. **ChromaDB Issues**: Regenerate embeddings with `data_embedding.py`
-4. **Import Errors**: Ensure all dependencies are installed
+3. **ChromaDB Issues**: Regenerate embeddings if database is corrupted
+4. **Import Errors**: Ensure all dependencies are installed (`pip install -r requirements.txt`)
+5. **OCR Not Working**: EasyOCR downloads models on first run - ensure internet connection
+6. **Camera Access Denied**: Check browser permissions for camera access
+7. **Slow Performance**: EasyOCR and ChromaDB may be slow on first run while loading models
 
 ### Debug Mode
 
@@ -180,7 +234,10 @@ This project is for educational and personal use. Pokémon and TCG data are prop
 ## Acknowledgments
 
 - **TCGdx**: Card data API
-- **OpenAI**: AI language model
+- **OpenAI/Google Gemini**: AI language models
 - **ChromaDB**: Vector database
 - **Flask**: Web framework
+- **EasyOCR**: Optical character recognition
+- **OpenCV**: Computer vision library
+- **Prefect**: Workflow orchestration
 - **The Pokémon Company**: Original card designs and data

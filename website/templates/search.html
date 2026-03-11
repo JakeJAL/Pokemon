@@ -6,17 +6,19 @@
 <style>
     .search-box {
         display: grid;
-        grid-template-columns: 2fr 1fr 1fr 1.5fr auto;
-        gap: 1rem;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+        gap: 0.75rem;
         margin-bottom: 2rem;
+        align-items: start;
     }
     
     .search-box input {
-        padding: 1rem;
+        padding: 0.75rem;
         border: 2px solid #e0e0e0;
         border-radius: 12px;
-        font-size: 1rem;
+        font-size: 0.95rem;
         transition: border-color 0.3s;
+        background: white;
     }
     
     .filter-wrapper {
@@ -25,10 +27,10 @@
     
     .filter-button {
         width: 100%;
-        padding: 1rem;
+        padding: 0.75rem;
         border: 2px solid #e0e0e0;
         border-radius: 12px;
-        font-size: 1rem;
+        font-size: 0.95rem;
         background: white;
         text-align: left;
         cursor: pointer;
@@ -51,11 +53,11 @@
         border: 2px solid #eab308;
         border-radius: 12px;
         margin-top: 0.5rem;
-        padding: 1rem;
+        padding: 0.75rem;
         display: none;
         z-index: 100;
         box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        max-height: 300px;
+        max-height: 250px;
         overflow-y: auto;
     }
     
@@ -67,7 +69,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.5rem;
+        padding: 0.4rem;
         cursor: pointer;
         border-radius: 6px;
     }
@@ -94,10 +96,10 @@
     
     .set-search-input {
         width: 100%;
-        padding: 1rem;
+        padding: 0.75rem;
         border: 2px solid #e0e0e0;
         border-radius: 12px;
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
     
     .set-dropdown {
@@ -109,7 +111,7 @@
         border: 2px solid #eab308;
         border-radius: 12px;
         margin-top: 0.5rem;
-        max-height: 300px;
+        max-height: 250px;
         overflow-y: auto;
         display: none;
         z-index: 100;
@@ -121,9 +123,10 @@
     }
     
     .set-option {
-        padding: 0.8rem;
+        padding: 0.6rem;
         cursor: pointer;
         border-bottom: 1px solid #f0f0f0;
+        font-size: 0.95rem;
     }
     
     .set-option:hover {
@@ -149,15 +152,17 @@
     }
     
     .search-btn {
-        padding: 1rem 2rem;
+        padding: 0.75rem 1.5rem;
         background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
         color: #0f172a;
         border: none;
         border-radius: 12px;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 600;
         cursor: pointer;
         transition: transform 0.2s;
+        height: fit-content;
+        white-space: nowrap;
     }
     
     .search-btn:hover {
@@ -184,10 +189,30 @@
         transform: translateY(-5px);
     }
     
-    .pokemon-card img {
+    /* Unified image and placeholder styling */
+    .pokemon-card img, .no-image-placeholder {
         width: 100%;
-        border-radius: 10px;
-        margin-bottom: 1rem;
+        aspect-ratio: 2/3;
+        border-radius: 12px;
+        margin-bottom: 10px;
+    }
+
+    .pokemon-card img {
+        object-fit: contain;
+        display: block;
+        background: rgba(0,0,0,0.05);
+    }
+
+    .no-image-placeholder {
+        background: linear-gradient(145deg, #f0f0f0, #e6e6e6);
+        border: 2px dashed #ccc;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #888;
+        font-size: 0.8rem;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
     }
     
     .card-name {
@@ -202,14 +227,32 @@
         margin-bottom: 0.3rem;
     }
     
+    .card-rarity {
+        font-size: 0.85rem;
+        color: #764ba2;
+        margin-bottom: 0.3rem;
+    }
+
     .card-number {
         font-size: 0.8rem;
         color: #999;
     }
     
+    @media (max-width: 1024px) {
+        .search-box {
+            grid-template-columns: 1fr 1fr;
+        }
+        .search-btn {
+            grid-column: span 2;
+        }
+    }
+
     @media (max-width: 768px) {
         .search-box {
             grid-template-columns: 1fr;
+        }
+        .search-btn {
+            grid-column: span 1;
         }
     }
 </style>
@@ -222,8 +265,19 @@
     </h2>
     
     <div class="search-box">
-        <input type="text" id="cardSearchInput" placeholder="Search for a Pokemon or card name...">
-        
+        <div class="search-input-container">
+            <i class="fas fa-search"></i>
+            <input type="text" id="cardSearchInput" placeholder="Search for a Pokemon or card name...">
+        </div>
+
+        <select id="sortOrder" class="filter-button">
+            <option value="number"># Card Number</option>
+            <option value="name">Name (A-Z)</option>
+            <option value="set">Set Name</option>
+            <option value="rarity_asc">Rarity (Low-High)</option>
+            <option value="rarity_desc">Rarity (High-Low)</option>
+        </select>
+
         <div class="filter-wrapper">
             <button type="button" class="filter-button" onclick="toggleFilter('rarityFilter')">
                 <span>Rarity</span>
@@ -287,7 +341,7 @@
         </div>
         
         <div class="set-search-wrapper">
-            <input type="text" id="setSearchInput" class="set-search-input" placeholder="Search sets..." onclick="toggleSetDropdown()" oninput="filterSets()">
+            <input type="text" id="setSearchInput" class="set-search-input" placeholder="All Sets" onclick="toggleSetDropdown()" oninput="filterSets()">
             <div id="setDropdown" class="set-dropdown"></div>
         </div>
         
@@ -302,6 +356,11 @@
     </div>
     
     <div id="searchResults" class="card-search-results"></div>
+    <div style="text-align: center; margin: 2rem 0;">
+    <button id="loadMoreBtn" onclick="currentPage++; searchCards(true);" class="buy-btn" style="display:none; padding: 15px 50px; background: #eab308; color: #1e3a8a; border-radius: 30px; font-weight: bold; cursor: pointer;">
+        Load More Cards...
+    </button>
+    </div>
 </div>
 {% endblock %}
 
@@ -414,64 +473,118 @@
     });
     
     // Card Search
-    async function searchCards() {
-        const searchTerm = document.getElementById('cardSearchInput').value;
-        
-        // Get selected rarities (now direct rarity values)
-        const rarityCheckboxes = document.querySelectorAll('#rarityFilter input[type="checkbox"]:checked');
-        const rarities = Array.from(rarityCheckboxes).map(cb => cb.value);
-        
-        // Get selected card types
-        const cardTypeCheckboxes = document.querySelectorAll('#cardTypeFilter input[type="checkbox"]:checked');
-        const cardTypes = Array.from(cardTypeCheckboxes).map(cb => cb.value);
-        
-        if (!searchTerm && !selectedSetId) {
-            alert('Please enter a Pokemon name or select a set');
-            return;
-        }
-        
-        const loading = document.getElementById('searchLoading');
-        const results = document.getElementById('searchResults');
-        
-        loading.style.display = 'block';
-        results.innerHTML = '';
-        
-        try {
-            const response = await fetch('/api/cards', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    set_id: selectedSetId,
-                    rarities: rarities,
-                    search_term: searchTerm,
-                    card_types: cardTypes
-                })
-            });
+// 1. Move this variable OUTSIDE the function so it persists
+let currentPage = 1;
+
+    async function searchCards(append = false) {
+            const searchTerm = document.getElementById('cardSearchInput').value;
             
-            const cards = await response.json();
-            loading.style.display = 'none';
+            // --- STEP 3: Grab the sort order from the dropdown ---
+            const sortOrder = document.getElementById('sortOrder').value;
             
-            if (cards.length === 0) {
-                results.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #999;">No cards found</p>';
-            } else {
-                cards.forEach(card => {
-                    const cardDiv = document.createElement('div');
-                    cardDiv.className = 'pokemon-card';
-                    cardDiv.innerHTML = `
-                        ${card.image ? `<img src="${card.image}" alt="${card.name}">` : '<div style="height: 200px; background: #f0f0f0; border-radius: 10px;"></div>'}
-                        <div class="card-name">${card.name}</div>
-                        <div class="set-name">${card.setName}</div>
-                        <div class="card-rarity" style="font-size: 0.85rem; color: #764ba2; margin-bottom: 0.3rem;">${card.rarity}</div>
-                        <div class="card-number">#${card.localId} • ${card.category}</div>
-                    `;
-                    results.appendChild(cardDiv);
-                });
+            // Reset page if this is a brand new search
+            if (!append) {
+                currentPage = 1;
             }
-        } catch (error) {
-            console.error('Error searching cards:', error);
-            loading.style.display = 'none';
-            alert('Failed to search cards');
+
+            const rarityCheckboxes = document.querySelectorAll('#rarityFilter input[type="checkbox"]:checked');
+            const rarities = Array.from(rarityCheckboxes).map(cb => cb.value);
+            
+            const cardTypeCheckboxes = document.querySelectorAll('#cardTypeFilter input[type="checkbox"]:checked');
+            const cardTypes = Array.from(cardTypeCheckboxes).map(cb => cb.value);
+            
+            if (!searchTerm && !selectedSetId) {
+                alert('Please enter a Pokemon name or select a set');
+                return;
+            }
+            
+            const loading = document.getElementById('searchLoading');
+            const results = document.getElementById('searchResults');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            
+            loading.style.display = 'block';
+            
+            if (!append) {
+                results.innerHTML = '';
+            }
+            
+            try {
+                const response = await fetch('/api/cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        set_id: selectedSetId,
+                        rarities: rarities,
+                        search_term: searchTerm,
+                        card_types: cardTypes,
+                        page: currentPage,
+                        sort_by: sortOrder  // --- Added sort_by here ---
+                    })
+                });
+                
+                const cards = await response.json();
+                loading.style.display = 'none';
+                
+                if (cards.length === 0) {
+                    if (!append) {
+                        results.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #999;">No cards found</p>';
+                    }
+                    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+                } else {
+                    cards.forEach(card => {
+                        const cardDiv = document.createElement('div');
+                        cardDiv.className = 'pokemon-card';
+                        
+                        const hasImage = card.image && card.image !== '' && card.image !== 'null';
+                        
+                        const imageHTML = hasImage 
+                            ? `<img src="${card.image}" alt="${card.name}" loading="lazy">` 
+                            : `<div class="no-image-placeholder">
+                                <i class="fas fa-image" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                                <br>No Image Available
+                            </div>`;
+
+                        cardDiv.innerHTML = `
+                            ${imageHTML}
+                            <div class="card-name">${card.name}</div>
+                            <div class="set-name">${card.setName}</div>
+                            <div class="card-rarity" style="font-size: 0.85rem; color: #764ba2; margin-bottom: 0.3rem;">${card.rarity}</div>
+                            <div class="card-number">#${card.localId} • ${card.category}</div>
+                        `;
+                        results.appendChild(cardDiv);
+                    });
+
+                    if (loadMoreBtn) {
+                        loadMoreBtn.style.display = cards.length === 20 ? 'block' : 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error searching cards:', error);
+                loading.style.display = 'none';
+                alert('Failed to search cards');
+            }
         }
-    }
+
+        // Tinka's Extra Magic: Listen for dropdown changes to auto-search
+        document.getElementById('sortOrder').addEventListener('change', () => {
+            searchCards(false); 
+        });
+
+// --- STEP 4: Event Listeners ---
+    
+    // This watches the "Sort By" dropdown
+    document.getElementById('sortOrder').addEventListener('change', () => {
+        // When the user changes the sort, we want to start from the beginning
+        currentPage = 1; 
+        searchCards(false); // false means 'don't append, start fresh'
+    });
+
+    // Optional: This lets users hit "Enter" in the search box to search
+    document.getElementById('cardSearchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            searchCards(false);
+        }
+    });
+
 </script>
 {% endblock %}
