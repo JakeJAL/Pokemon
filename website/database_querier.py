@@ -180,12 +180,7 @@ DO NOT list the individual products or prices. Just a brief intro."""
     
     def query(self, user_query: str, top_n: int = 5, collection: dict = None) -> Dict[str, Any]:
             """
-            Main function to process user query and return results.
             Updated query function to handle user collection data.
-            
-            Args:
-                user_query: Natural language query from user
-                top_n: Number of top results to return
             """
             # Step 1: Extract keywords using LLM
             keywords = self.extract_keywords(user_query)

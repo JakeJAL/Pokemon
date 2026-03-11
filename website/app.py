@@ -7,6 +7,11 @@ import re
 from database_querier import PokemonCardSearch, OpenAIClient
 from dotenv import load_dotenv
 import os
+import easyocr
+import cv2
+import numpy as np
+import base64
+from difflib import get_close_matches
 
 # Load environment variables
 load_dotenv()
@@ -126,106 +131,128 @@ def collection():
 def get_cards():
     data = request.json
     set_id = data.get('set_id')
-    rarities = data.get('rarities', [])  # Now direct rarity values
+    rarities = data.get('rarities', [])
     search_term = data.get('search_term', '').lower()
     card_types = data.get('card_types', [])
     
+    # NEW: Sorting & Pagination variables
+    sort_by = data.get('sort_by', 'number') # Default sorting
+    page = int(data.get('page', 1))
+    per_page = 20
+    
     async def fetch_cards():
-        # If no set specified, search all sets
+        # Fetch the initial list
         if not set_id:
-            # Use Query to search by name across all cards
             if search_term:
                 cards = await sdk.card.list(Query().contains("name", search_term))
             else:
                 cards = await sdk.card.list()
-            
-            # Process cards in parallel
-            async def fetch_card_details(card_resume):
-                try:
-                    full_card = await sdk.card.get(card_resume.id)
-                    
-                    # Check rarity filter
-                    if rarities and hasattr(full_card, 'rarity') and full_card.rarity not in rarities:
-                        return None
-                    
-                    # Check card type filter
-                    if card_types:
-                        card_category = getattr(full_card, 'category', None)
-                        if card_category not in card_types:
-                            return None
-                    
-                    image_url = full_card.get_image_url(Quality.HIGH, Extension.PNG) if hasattr(full_card, 'get_image_url') else None
-                    
-                    # Get set name from the card's set info
-                    set_name = full_card.set.name if hasattr(full_card, 'set') and hasattr(full_card.set, 'name') else 'Unknown Set'
-                    set_id_val = full_card.set.id if hasattr(full_card, 'set') and hasattr(full_card.set, 'id') else ''
-                    
-                    return {
-                        'name': full_card.name,
-                        'rarity': full_card.rarity if hasattr(full_card, 'rarity') else 'Unknown',
-                        'localId': full_card.localId,
-                        'image': image_url,
-                        'setName': set_name,
-                        'setId': set_id_val,
-                        'category': card_category if card_category else 'Unknown'
-                    }
-                except Exception as e:
-                    print(f"Error processing card: {e}")
-                    return None
-            
-            # Fetch all cards in parallel
-            tasks = [fetch_card_details(card) for card in cards]
-            results = await asyncio.gather(*tasks)
-            matching_cards = [card for card in results if card is not None]
-            
-            return matching_cards
         else:
-            # Single set logic
             if search_term:
                 cards = await sdk.card.list(Query().equal("set.id", set_id).contains("name", search_term))
             else:
                 cards = await sdk.card.list(Query().equal("set.id", set_id))
-            
-            async def fetch_card_details(card_resume):
-                try:
-                    full_card = await sdk.card.get(card_resume.id)
-                    
-                    # Check rarity filter
-                    if rarities and hasattr(full_card, 'rarity') and full_card.rarity not in rarities:
-                        return None
-                    
-                    # Check card type filter
-                    if card_types:
-                        card_category = getattr(full_card, 'category', None)
-                        if card_category not in card_types:
-                            return None
-                    
-                    image_url = full_card.get_image_url(Quality.HIGH, Extension.PNG) if hasattr(full_card, 'get_image_url') else None
-                    
-                    # Get set info
-                    set_info = await sdk.set.get(set_id)
-                    
-                    return {
-                        'name': full_card.name,
-                        'rarity': full_card.rarity if hasattr(full_card, 'rarity') else 'Unknown',
-                        'localId': full_card.localId,
-                        'image': image_url,
-                        'setName': set_info.name,
-                        'setId': set_info.id,
-                        'category': getattr(full_card, 'category', 'Unknown')
-                    }
-                except Exception as e:
-                    print(f"Error processing card: {e}")
+        
+        # --- NEW: SORTING LOGIC ---
+        # We sort the 'resume' objects before doing the heavy lifting
+        if sort_by == 'name':
+            cards.sort(key=lambda x: x.name)
+        elif sort_by == 'set':
+            cards.sort(key=lambda x: x.set.name if hasattr(x, 'set') else '')
+        elif sort_by == 'number':
+            # Extract number from localId (handles '12/102')
+            def get_num(c):
+                match = re.search(r'\d+', str(c.localId))
+                return int(match.group()) if match else 999
+            cards.sort(key=get_num)
+
+        # --- NEW: SLICE THE LIST HERE ---
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_cards = cards[start:end]
+        
+        async def fetch_card_details(card_resume):
+            try:
+                full_card = await sdk.card.get(card_resume.id)
+                
+                # Define this early for safety!
+                card_category = getattr(full_card, 'category', 'Unknown')
+                
+                # Filters
+                if rarities and hasattr(full_card, 'rarity') and full_card.rarity not in rarities:
                     return None
+                if card_types and card_category not in card_types:
+                    return None
+                
+                image_url = full_card.get_image_url(Quality.LOW, Extension.JPG)
+                
+                return {
+                    'name': full_card.name,
+                    'rarity': getattr(full_card, 'rarity', 'Unknown'),
+                    'localId': full_card.localId,
+                    'image': image_url,
+                    'setName': full_card.set.name if hasattr(full_card, 'set') else 'Unknown',
+                    'setId': full_card.set.id if hasattr(full_card, 'set') else '',
+                    'category': card_category
+                }
+            except Exception as e:
+                print(f"Error: {e}")
+                return None
+        
+        tasks = [fetch_card_details(card) for card in paginated_cards]
+        results = await asyncio.gather(*tasks)
+        
+        # If the user chose Rarity sorting, we sort the detailed results
+        # because rarity isn't available on the 'resume' objects
+        final_results = [card for card in results if card is not None]
+        
+        if sort_by == 'rarity_asc' or sort_by == 'rarity_desc':
+            rarity_map = {'Common': 1, 'Uncommon': 2, 'Rare': 3, 'Holo Rare': 4, 'Ultra Rare': 5, 'Secret Rare': 6}
+            final_results.sort(key=lambda x: rarity_map.get(x['rarity'], 0), reverse=(sort_by == 'rarity_desc'))
             
-            tasks = [fetch_card_details(card) for card in cards]
-            results = await asyncio.gather(*tasks)
-            matching_cards = [card for card in results if card is not None]
-            
-            return matching_cards
+        return final_results
     
     results = asyncio.run(fetch_cards())
     return jsonify(results)
+
+@app.route('/scan')
+def scan_page():
+    # This looks inside the 'templates' folder for scan.html
+    return render_template('scan.html')
+
+# Initialize the reader once (this downloads the model on first run)
+reader = easyocr.Reader(['en'])
+
+@app.route('/api/scan', methods=['POST'])
+def api_scan():
+    try:
+        data = request.json['image']
+        # Decode the base64 image from the camera
+        header, encoded = data.split(",", 1)
+        nparr = np.frombuffer(base64.b64decode(encoded), np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        # EasyOCR is smart! It doesn't need as much pre-processing as Tesseract.
+        # We just pass the image directly.
+        results = reader.readtext(img)
+
+        # results is a list: [ ([[coords]], "text", confidence), ... ]
+        # We'll join all detected text together to look for the Pokemon name
+        detected_text = " ".join([res[1] for res in results])
+        
+        # Tinka Tip: In a real app, you'd search your CSV for 'detected_text'
+        # For now, let's just return what we found!
+        return jsonify({
+            'name': detected_text if detected_text else "No text detected",
+            'success': True
+        })
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+def find_best_card_match(detected_text, card_list):
+    # This looks for the closest name in your CSV
+    matches = get_close_matches(detected_text, card_list, n=1, cutoff=0.6)
+    return matches[0] if matches else detected_text
 
 if __name__ == '__main__':
     app.run(debug=True)
