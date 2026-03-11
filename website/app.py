@@ -168,6 +168,7 @@ def index():
 def price():
     search_query = request.args.get('query', '').lower()
     category = request.args.get('category', 'all')
+    sort_order = request.args.get('sort', 'asc')  # 'asc' or 'desc'
     items = []
     
     # Smart detection keywords
@@ -204,12 +205,22 @@ def price():
                     # If it's not a pack, box, or single, it goes to 'Other'
                     if is_pack or is_box or is_single:
                         continue
+                
+                # Convert price to float for sorting
+                try:
+                    row['price_float'] = float(row['price'])
+                except (ValueError, KeyError):
+                    row['price_float'] = 0.0
                         
                 items.append(row)
     except FileNotFoundError:
         print("CSV file missing!")
+    
+    # Sort items by price
+    reverse_sort = (sort_order == 'desc')
+    items.sort(key=lambda x: x.get('price_float', 0.0), reverse=reverse_sort)
 
-    return render_template('price.html', items=items, query=search_query, current_cat=category)
+    return render_template('price.html', items=items, query=search_query, current_cat=category, current_sort=sort_order)
 
 @app.route('/search')
 def search():
