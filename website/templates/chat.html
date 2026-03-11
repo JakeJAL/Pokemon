@@ -135,61 +135,68 @@
     }
     
     function sendMessage() {
-        const input = document.getElementById('chatInput');
-        const message = input.value.trim();
-        if (!message) return;
-        
-        const messagesContainer = document.getElementById('chatMessages');
-        
-        // Add user message
-        const userMsg = document.createElement('div');
-        userMsg.className = 'message user';
-        userMsg.innerHTML = `<div class="message-content">${message}</div>`;
-        messagesContainer.appendChild(userMsg);
-        input.value = '';
-        
-        // Typing indicator
-        const typingMsg = document.createElement('div');
-        typingMsg.className = 'message bot';
-        typingMsg.innerHTML = `<div class="message-content">Searching the database...</div>`;
-        messagesContainer.appendChild(typingMsg);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
-        fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: message, top_n: 6 })
-        })
-        .then(response => response.json())
-        .then(data => {
-            messagesContainer.removeChild(typingMsg);
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
             
-            const botMsg = document.createElement('div');
-            botMsg.className = 'message bot';
+            // --- NEW: Grab the collection from localStorage ---
+            const myVault = JSON.parse(localStorage.getItem('myCollection') || '{}');
             
-            // 3. Logic to show only text + Grid (no double listing!)
-            let content = `<div class="message-content">${data.response}`;
+            const messagesContainer = document.getElementById('chatMessages');
             
-            if (data.results && data.results.length > 0) {
-                content += '<div class="card-result-grid">';
-                data.results.forEach(card => {
-                    content += `
-                        <div class="card-item">
-                            <strong style="display:block; margin-bottom:5px;">${card.title}</strong>
-                            <span style="color: #fbbf24; font-weight: bold; font-size: 1.1rem;">£${card.price}</span><br>
-                            <small style="opacity: 0.8;">Source: ${card.source}</small><br>
-                            <a href="${card.url}" target="_blank" style="color: #fbbf24; text-decoration: underline; display:inline-block; margin-top:8px;">View Deal</a>
-                        </div>
-                    `;
-                });
-                content += '</div>';
-            }
+            // Add user message to UI
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user';
+            userMsg.innerHTML = `<div class="message-content">${message}</div>`;
+            messagesContainer.appendChild(userMsg);
+            input.value = '';
             
-            content += '</div>';
-            botMsg.innerHTML = content;
-            messagesContainer.appendChild(botMsg);
+            // Show typing indicator
+            const typingMsg = document.createElement('div');
+            typingMsg.className = 'message bot';
+            typingMsg.innerHTML = `<div class="message-content">Checking my Pokédex...</div>`;
+            messagesContainer.appendChild(typingMsg);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        });
-    }
+            
+            // --- UPDATED: Send the message AND the collection ---
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    message: message, 
+                    top_n: 6,
+                    collection: myVault  // <--- This is the secret sauce!
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                messagesContainer.removeChild(typingMsg);
+                
+                const botMsg = document.createElement('div');
+                botMsg.className = 'message bot';
+                
+                let content = `<div class="message-content">${data.response}`;
+                
+                if (data.results && data.results.length > 0) {
+                    content += '<div class="card-result-grid">';
+                    data.results.forEach(card => {
+                        content += `
+                            <div class="card-item">
+                                <strong style="display:block; margin-bottom:5px;">${card.title}</strong>
+                                <span style="color: #fbbf24; font-weight: bold; font-size: 1.1rem;">£${card.price}</span><br>
+                                <small style="opacity: 0.8;">Source: ${card.source}</small><br>
+                                <a href="${card.url}" target="_blank" style="color: #fbbf24; text-decoration: underline; display:inline-block; margin-top:8px;">View Deal</a>
+                            </div>
+                        `;
+                    });
+                    content += '</div>';
+                }
+                
+                content += '</div>';
+                botMsg.innerHTML = content;
+                messagesContainer.appendChild(botMsg);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            });
+        }
 </script>
 {% endblock %}

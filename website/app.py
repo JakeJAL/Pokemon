@@ -79,7 +79,7 @@ def chat():
 
 @app.route('/api/chat', methods=['POST'])
 def chat_api():
-    """API endpoint for Pokemon card chatbot"""
+    """API endpoint for Pokemon card chatbot with Collection awareness"""
     if not pokemon_searcher:
         return jsonify({
             'error': 'Chatbot not available. Check API key configuration.'
@@ -89,11 +89,20 @@ def chat_api():
     user_message = data.get('message', '')
     top_n = data.get('top_n', 5)
     
+    # NEW: Grab the collection data sent from the browser's localStorage
+    user_collection = data.get('collection', {})
+    
     if not user_message:
         return jsonify({'error': 'No message provided'}), 400
     
     try:
-        result = pokemon_searcher.query(user_message, top_n=top_n)
+        # Pass the user_collection into the query method so the LLM knows what's owned
+        result = pokemon_searcher.query(
+            user_message, 
+            top_n=top_n, 
+            collection=user_collection
+        )
+        
         return jsonify({
             'response': result['response'],
             'results': result['results'],
