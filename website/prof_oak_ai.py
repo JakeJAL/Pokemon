@@ -418,7 +418,7 @@ class PokemonCardSearch:
 csv_path = os.path.join(os.path.dirname(__file__), "pokemon_cards_database.csv")
 store_searcher = PokemonCardSearch(csv_path)
 
-def professor_oak_query(query: str) -> Dict[str, Any]:
+def professor_oak_query(query: str, user_collection: Dict[str, bool] = None) -> Dict[str, Any]:
     """
     Main function to process user query and return Professor Oak's response.
     
@@ -442,6 +442,18 @@ def professor_oak_query(query: str) -> Dict[str, Any]:
     
     if is_general_info_query:
         return _handle_general_info_query(query)
+    
+    # Check for collection-related queries
+    collection_keywords = [
+        'complete', 'completion', 'missing', 'need', 'left', 'remaining',
+        'how many cards', 'what cards', 'which cards', 'cards i need',
+        'cards missing', 'cards left', 'finish', 'collection'
+    ]
+    
+    is_collection_query = any(keyword in query_lower for keyword in collection_keywords)
+    
+    if is_collection_query and user_collection:
+        return _handle_collection_query(query, user_collection)
     
     # Check for price constraints
     min_price, max_price = parse_price_constraints(query)
@@ -595,6 +607,168 @@ Answer the question directly and helpfully. If asking about the newest set, iden
             'num_results': 0,
             'query_type': 'general_info'
         }
+
+
+def _handle_collection_query(query: str, user_collection: Dict[str, bool]) -> Dict[str, Any]:
+    """Handle collection completion queries"""
+    try:
+        # Load all cards to analyze sets
+        all_cards = load_all_cards_data()
+        
+        if not all_cards:
+            return {
+                'response': "I'm having trouble accessing my Pokemon card database right now, young trainer.",
+                'results': [],
+                'num_results': 0,
+                'query_type': 'collection_error'
+            }
+        
+        # Analyze user's collection by set
+        collection_analysis = _analyze_user_collection(user_collection, all_cards)
+        
+        if not collection_analysis:
+            return {
+                'response': "It looks like you haven't started collecting any cards yet, young trainer! Choose a set and start building your collection!",
+                'results': [],
+                'num_results': 0,
+                'query_type': 'collection_empty'
+            }
+        
+        # Generate response based on collection analysis
+        response_text = _generate_collection_response(query, collection_analysis)
+        
+        return {
+            'response': response_text,
+            'results': [],
+            'num_results': len(collection_analysis),
+            'query_type': 'collection_analysis'
+        }
+        
+    except Exception as e:
+        return {
+            'response': f"I'm having trouble analyzing your collection right now, young trainer. Error: {str(e)}",
+            'results': [],
+            'num_results': 0,
+            'query_type': 'collection_error'
+        }
+
+
+def _analyze_user_collection(user_collection: Dict[str, bool], all_cards: List[Dict]) -> Dict[str, Dict]:
+    """Analyze user's collection to find completion status by set"""
+    collection_by_set = {}
+    
+    # Group all cards by set
+    cards_by_set = {}
+    for card in all_cards:
+        set_id = card.get('set', {}).get('id', 'unknown')
+        set_name = card.get('set', {}).get('name', 'Unknown Set')
+        
+        if set_id not in cards_by_set:
+            cards_by_set[set_id] = {
+                'name': set_name,
+                'cards': []
+            }
+        cards_by_set[set_id]['cards'].append(card)
+    
+    # Analyze each set the user has cards from
+    for unique_id, owned in user_collection.items():
+        if not owned:  # Skip cards not owned
+            continue
+            
+        # Extract set ID from unique_id (format: localId + setId)
+        # We need to find which set this card belongs to
+        for set_id, set_data in cards_by_set.items():
+            if unique_id.endswith(set_id):
+                if set_id not in collection_by_set:
+                    collection_by_set[set_id] = {
+                        'name': set_data['name'],
+                        'total_cards': len(set_data['cards']),
+                        'owned_cards': 0,
+                        'missing_cards': []
+                    }
+                collection_by_set[set_id]['owned_cards'] += 1
+                break
+    
+    # Calculate missing cards for each set
+    for set_id, set_info in collection_by_set.items():
+        if set_id in cards_by_set:
+            all_set_cards = cards_by_set[set_id]['cards']
+            for card in all_set_cards:
+                card_unique_id = card.get('localId', '') + set_id
+                if not user_collection.get(card_unique_id, False):
+                    set_info['missing_cards'].append({
+                        'name': card.get('name', 'Unknown'),
+                        'number': card.get('localId', '?'),
+                        'rarity': card.get('rarity', 'Unknown')
+                    })
+    
+    return collection_by_set
+
+
+def _generate_collection_response(query: str, collection_analysis: Dict[str, Dict]) -> str:
+    """Generate a response about the user's collection"""
+    query_lower = query.lower()
+    
+    # Build response based on collection analysis
+    response_parts = []
+    
+    if 'how many' in query_lower and ('need' in query_lower or 'missing' in query_lower or 'left' in query_lower):
+        # User asking about how many cards they need
+        response_parts.append("Let me check your collection progress, young trainer!")
+        
+        for set_id, set_info in collection_analysis.items():
+            missing_count = len(set_info['missing_cards'])
+            total = set_info['total_cards']
+            owned = set_info['owned_cards']
+            completion_percent = (owned / total * 100) if total > 0 else 0
+            
+            response_parts.append(f"\n**{set_info['name']}**: You have {owned}/{total} cards ({completion_percent:.1f}% complete)")
+            if missing_count > 0:
+                response_parts.append(f"You need {missing_count} more cards to complete this set!")
+            else:
+                response_parts.append("🎉 Congratulations! You've completed this set!")
+    
+    elif 'what cards' in query_lower or 'which cards' in query_lower:
+        # User asking about specific missing cards
+        response_parts.append("Here are the cards you're missing from your collection, young trainer:")
+        
+        for set_id, set_info in collection_analysis.items():
+            missing_cards = set_info['missing_cards']
+            if missing_cards:
+                response_parts.append(f"\n**{set_info['name']}** - Missing {len(missing_cards)} cards:")
+                # Show first 10 missing cards to avoid overwhelming response
+                for i, card in enumerate(missing_cards[:10]):
+                    response_parts.append(f"• {card['name']} (#{card['number']}) - {card['rarity']}")
+                
+                if len(missing_cards) > 10:
+                    response_parts.append(f"... and {len(missing_cards) - 10} more cards")
+    
+    else:
+        # General collection overview
+        response_parts.append("Here's your collection overview, young trainer:")
+        
+        total_sets = len(collection_analysis)
+        completed_sets = sum(1 for set_info in collection_analysis.values() if len(set_info['missing_cards']) == 0)
+        
+        response_parts.append(f"\nYou're collecting from {total_sets} different sets!")
+        response_parts.append(f"You've completed {completed_sets} sets so far!")
+        
+        for set_id, set_info in collection_analysis.items():
+            owned = set_info['owned_cards']
+            total = set_info['total_cards']
+            completion_percent = (owned / total * 100) if total > 0 else 0
+            
+            if len(set_info['missing_cards']) == 0:
+                response_parts.append(f"\n✅ **{set_info['name']}**: COMPLETE! ({owned}/{total})")
+            else:
+                missing_count = len(set_info['missing_cards'])
+                response_parts.append(f"\n📊 **{set_info['name']}**: {owned}/{total} cards ({completion_percent:.1f}% complete, {missing_count} missing)")
+    
+    if not response_parts:
+        return "I couldn't find any collection data to analyze, young trainer. Make sure you've marked some cards as owned in your collection!"
+    
+    return '\n'.join(response_parts)
+
 
 
 def _handle_product_query(query: str, min_price: Optional[float] = None, max_price: Optional[float] = None) -> Dict[str, Any]:
