@@ -507,7 +507,7 @@ Be precise and only return the JSON object, nothing else."""
 
         # Make vision API call
         response = vision_client.chat.completions.create(
-            model="google/gemini-2.0-flash-exp:free",  # Free vision model
+            model="google/gemini-2.5-flash",  # Free vision model
             messages=[
                 {
                     "role": "user",
