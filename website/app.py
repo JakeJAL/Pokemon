@@ -176,7 +176,11 @@ def price():
     box_keywords = ['box', 'display', 'etb', 'trainer box', 'collection', 'tin', 'deck', 'bundle']
 
     try:
-        with open('pokemon_cards_database.csv', mode='r', encoding='utf-8') as file:
+        # Get the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        csv_path = os.path.join(script_dir, 'pokemon_cards_database.csv')
+        
+        with open(csv_path, mode='r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 title = row['title'].lower()
@@ -518,7 +522,7 @@ Be precise and only return the JSON object, nothing else."""
 
         # Make vision API call
         response = vision_client.chat.completions.create(
-            model="google/gemini-2.0-flash-exp:free",  # Free vision model
+            model="google/gemini-2.5-flash",  # Free vision model
             messages=[
                 {
                     "role": "user",
