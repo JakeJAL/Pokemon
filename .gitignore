@@ -221,3 +221,4 @@ simple_*.py
 # Temporary files
 *.tmp
 *.temp
+website/ARCHITECTURE.md
