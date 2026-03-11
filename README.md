@@ -21,28 +21,33 @@ A comprehensive Pokémon Trading Card Game (TCG) assistant powered by AI that he
 
 ```
 Pokemon/                       # Main application directory
-├── website/                   # Flask web application
-│   ├── app.py                # Main Flask application with all routes
-│   ├── prof_oak_ai.py        # AI assistant logic and card search
-│   ├── pokemon_search.py     # Card search system with LLM integration
-│   ├── database_querier.py   # Database query handler with OpenAI
-│   ├── website_scraper.py    # Web scraper for price data collection
-│   ├── templates/            # HTML templates
-│   │   ├── base.html        # Base template
-│   │   ├── chat.html        # Chat interface
-│   │   ├── home.html        # Home page
-│   │   ├── collection.html  # Collection management page
-│   │   ├── price.html       # Price search page
-│   │   ├── scan.html        # Card scanning page
-│   │   └── search.html      # Card search page
-│   ├── static/              # Static assets
-│   │   └── prof_oak.png     # Professor Oak avatar
-│   └── pokemon_cards_database.csv  # Store pricing data
-├── chroma_db/                # ChromaDB vector database
-├── all_cards.json           # Complete TCG card database (22,754+ cards)
-├── requirements.txt         # Python dependencies
+├── app.py                    # Main Flask application with all routes
+├── Dockerfile                # Docker configuration
+├── docker-compose.yml        # Docker Compose configuration
+├── .dockerignore            # Docker ignore file
+├── .gitignore               # Git ignore file
 ├── .env                     # Environment variables (API keys)
-└── README.md               # This file
+├── requirements.txt         # Python dependencies
+├── README.md               # This file
+├── data/                    # Data files directory
+│   ├── all_cards.json      # Complete TCG card database (22,754+ cards)
+│   ├── pokemon_cards_database.csv  # Store pricing data
+│   └── chroma_db/          # ChromaDB vector database
+├── modules/                 # Python modules
+│   ├── prof_oak_ai.py      # AI assistant logic and card search
+│   ├── pokemon_search.py   # Card search system with LLM integration
+│   ├── database_querier.py # Database query handler with OpenAI
+│   └── website_scraper.py  # Web scraper for price data collection
+├── templates/               # HTML templates
+│   ├── base.html           # Base template
+│   ├── chat.html           # Chat interface
+│   ├── home.html           # Home page
+│   ├── collection.html     # Collection management page
+│   ├── price.html          # Price search page
+│   ├── scan.html           # Card scanning page
+│   └── search.html         # Card search page
+└── static/                  # Static assets
+    └── prof_oak.png        # Professor Oak avatar
 ```
 
 ## Setup Instructions
@@ -81,22 +86,21 @@ Pokemon/                       # Main application directory
    If you encounter ChromaDB schema errors, delete and recreate the database:
    ```bash
    # Windows PowerShell
-   Remove-Item -Recurse -Force chroma_db
+   Remove-Item -Recurse -Force data/chroma_db
    
    # Linux/Mac
-   rm -rf chroma_db
+   rm -rf data/chroma_db
    ```
    
    The database will be automatically recreated on first run.
 
 5. **Verify data files**
    Ensure these files exist:
-   - `all_cards.json` (22,754+ Pokémon cards)
-   - `website/pokemon_cards_database.csv` (store pricing data)
+   - `data/all_cards.json` (22,754+ Pokémon cards)
+   - `data/pokemon_cards_database.csv` (store pricing data)
 
 6. **Run the application**
    ```bash
-   cd website
    python app.py
    ```
 
@@ -160,7 +164,7 @@ Responses include:
 
 ## Technical Details
 
-### AI Assistant (`prof_oak_ai.py`)
+### AI Assistant (`modules/prof_oak_ai.py`)
 
 - **Smart Query Detection**: Identifies Pokémon names, rarity keywords, and query types
 - **Dual Search System**: Direct JSON search for specific Pokémon + ChromaDB for semantic search
@@ -183,7 +187,7 @@ Responses include:
 - **CSV Store Data**: Real pricing and availability information
 - **Pandas Integration**: Efficient data filtering and sorting
 
-### Web Scraping (`website_scraper.py`)
+### Web Scraping (`modules/website_scraper.py`)
 
 - **Automated Collection**: Scrapes pricing data from online stores
 - **Prefect Workflows**: Orchestrated data collection tasks
@@ -224,21 +228,21 @@ Responses include:
 
 ### Customization
 
-- **Model Selection**: Change AI model in `prof_oak_ai.py` (default: google/gemini-2.5-flash)
+- **Model Selection**: Change AI model in `modules/prof_oak_ai.py` (default: google/gemini-2.5-flash)
 - **Response Limits**: Adjust card count limits in prompts
-- **Store Data**: Update `pokemon_cards_database.csv` for pricing
+- **Store Data**: Update `data/pokemon_cards_database.csv` for pricing
 - **Styling**: Modify templates and CSS for appearance
 - **OCR Settings**: Configure EasyOCR language support and confidence thresholds
-- **Price Constraints**: Modify price parsing logic in `prof_oak_ai.py`
+- **Price Constraints**: Modify price parsing logic in `modules/prof_oak_ai.py`
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **"No cards found"**: Check if `all_cards.json` exists and is properly formatted
+1. **"No cards found"**: Check if `data/all_cards.json` exists and is properly formatted
 2. **API Errors**: Verify API key and endpoint in `.env` file
 3. **ChromaDB Schema Error** (`no such column: collections.topic`): 
-   - Delete the `chroma_db` folder and restart the app
+   - Delete the `data/chroma_db` folder and restart the app
    - The database will be recreated automatically
    - This happens when ChromaDB version changes
 4. **Import Errors**: Ensure all dependencies are installed (`pip install -r requirements.txt`)
