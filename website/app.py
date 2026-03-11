@@ -149,13 +149,7 @@ def chat_api():
         return jsonify({'error': 'No message provided'}), 400
     
     try:
-        result = professor_oak_query(user_message)
-        
-        # If user has a collection, we could potentially enhance the response
-        # For now, we'll just pass it through but it's available for future use
-        if user_collection:
-            # Future enhancement: modify response based on user's collection
-            pass
+        result = professor_oak_query(user_message, user_collection)
         
         return jsonify({
             'response': result['response'],
