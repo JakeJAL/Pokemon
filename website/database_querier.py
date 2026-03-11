@@ -163,63 +163,47 @@ Provide a helpful response that:
 
 Be friendly and encouraging."""
         else:
-            num_results = len(results)
+            results_text = "\n".join([
+                f"- {row['title']}: £{row['price']} ({row['source']}) - {row['url']}"
+                for _, row in results.iterrows()
+            ])
             
             prompt = f"""The user asked: "{user_query}"
 
-We found {num_results} matching Pokemon card options in our database.
+Here are the matching Pokemon cards from our database:
 
-Provide a SHORT, friendly intro message (1-2 sentences max) that:
-1. Acknowledges what they searched for
-2. Mentions we found results (don't list them - they'll be shown in a grid below)
-3. Encourages them to check out the options
+{results_text}
 
-DO NOT list the individual products or prices. Just a brief intro."""
+Provide a helpful, friendly response presenting these options to the user. Include prices and mention they can click the links for more details."""
         
         return self.llm_client.generate(prompt)
     
-    def query(self, user_query: str, top_n: int = 5, collection: dict = None) -> Dict[str, Any]:
-            """
-            Main function to process user query and return results.
-            Updated query function to handle user collection data.
+    def query(self, user_query: str, top_n: int = 5) -> Dict[str, Any]:
+        """
+        Main function to process user query and return results.
+        
+        Args:
+            user_query: Natural language query from user
+            top_n: Number of top results to return
             
-            Args:
-                user_query: Natural language query from user
-                top_n: Number of top results to return
-            """
-            # Step 1: Extract keywords using LLM
-            keywords = self.extract_keywords(user_query)
-            
-            # Step 2: Search database
-            results = self.search_database(keywords, top_n)
-            
-            # Step 3: Generate a personalized response
-            # We'll calculate how many cards they own to give the LLM some context
-            owned_count = sum(1 for v in collection.values() if v) if collection else 0
-            
-            # We customize the prompt for the response generator
-            if results.empty:
-                response = self.generate_response(user_query, results)
-            else:
-                # Tell the LLM about the user's vault!
-                prompt = f"""
-                The user asked: "{user_query}"
-                The user currently has {owned_count} cards in their collection vault.
-                We found {len(results)} matching items in the shop.
-
-                Write a SHORT, bubbly, and helpful response (1-2 sentences). 
-                If they have a lot of cards, congratulate them! 
-                If they are looking for something new, encourage them to add to their vault.
-                Do not list the results, just a friendly intro.
-                """
-                response = self.llm_client.generate(prompt)
-            
-            return {
-                "response": response,
-                "results": results.to_dict('records') if not results.empty else [],
-                "keywords_extracted": keywords,
-                "num_results": len(results)
-            }
+        Returns:
+            Dictionary with response, results, and metadata
+        """
+        # Step 1: Extract keywords using LLM
+        keywords = self.extract_keywords(user_query)
+        
+        # Step 2: Search database
+        results = self.search_database(keywords, top_n)
+        
+        # Step 3: Generate natural language response
+        response = self.generate_response(user_query, results)
+        
+        return {
+            "response": response,
+            "results": results.to_dict('records') if not results.empty else [],
+            "keywords_extracted": keywords,
+            "num_results": len(results)
+        }
 
 
 def main():

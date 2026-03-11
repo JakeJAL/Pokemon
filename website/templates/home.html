@@ -95,9 +95,11 @@
     </div>
     
     <div class="feature-card" onclick="window.location.href='/chat'">
-        <div class="feature-icon"><i class="fas fa-robot"></i></div>
-        <h3>AI Assistant</h3>
-        <p>Get instant answers to your Pokemon TCG questions. Our chatbot is here to help with rules, card values, and recommendations.</p>
+        <div class="feature-icon">
+            <img src="{{ url_for('static', filename='prof_oak.png') }}" alt="Professor Oak" style="width: 120px; height: auto; max-width: 100%; object-fit: contain;">
+        </div>
+        <h3>Chat with Professor Oak</h3>
+        <p>Get instant answers to your Pokemon TCG questions. Professor Oak is here to help with rules, card values, and recommendations.</p>
     </div>
 </div>
 {% endblock %}

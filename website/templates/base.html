@@ -127,7 +127,7 @@
                 <li><a href="/price" class="nav-link {% if request.endpoint == 'price' %}active{% endif %}"><i class="fas fa-tags"></i> Price Compare</a></li>
                 <li><a href="/search" class="nav-link {% if request.endpoint == 'search' %}active{% endif %}"><i class="fas fa-search"></i> Card Search</a></li>
                 <li><a href="/chat" class="nav-link {% if request.endpoint == 'chat' %}active{% endif %}"><i class="fas fa-comments"></i> Chat</a></li>
-                <li><a href="/collection" class="nav-link"><i class="fas fa-box-open"></i> My Vault</a></li>
+                <li><a href="/collection" class="nav-link {% if request.endpoint == 'collection' %}active{% endif %}"><i class="fas fa-box-open"></i> Collection</a></li>
             </ul>
         </div>
     </nav>
