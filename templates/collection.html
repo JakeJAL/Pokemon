@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}My Collection - PokéPrice{% endblock %}
+
+{% block extra_css %}
+<style>
+    .collection-header { text-align: center; color: white; margin: 2rem 0; }
+    .set-selector { 
+        width: 100%; max-width: 500px; padding: 12px; 
+        border-radius: 10px; margin: 0 auto 2rem; display: block;
+    }
+    .stats-container {
+        background: rgba(255, 255, 255, 0.1); border-radius: 15px;
+        padding: 1.5rem; color: white; text-align: center; margin-bottom: 2rem;
+    }
+    .progress-bar-bg {
+        background: #334155; height: 20px; border-radius: 10px; overflow: hidden; margin: 10px 0;
+    }
+    .progress-bar-fill {
+        background: #eab308; height: 100%; width: 0%; transition: 0.5s;
+    }
+    .card-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1.5rem;
+    }
+    .card-item {
+        background: white; border-radius: 10px; padding: 10px;
+        text-align: center; cursor: pointer; transition: 0.3s;
+        filter: grayscale(100%); opacity: 0.6; border: 3px solid transparent;
+    }
+    .card-item.owned {
+        filter: grayscale(0%); opacity: 1; border-color: #eab308;
+        transform: translateY(-5px); box-shadow: 0 5px 15px rgba(234, 179, 8, 0.4);
+    }
+    .card-item img { width: 100%; border-radius: 5px; margin-bottom: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="collection-header">
+    <h1><i class="fas fa-box-open"></i> My Card Vault</h1>
+    <p>Select a set to track your progress!</p>
+</div>
+
+<select id="setSelect" class="set-selector" onchange="loadSetCards()">
+    <option value="">Loading sets...</option>
+</select>
+
+<div id="stats" class="stats-container" style="display: none;">
+    <h3 id="setNameDisplay">Set Name</h3>
+    <p id="counter">Owned: 0 / 0</p>
+    <div class="progress-bar-bg"><div id="progressFill" class="progress-bar-fill"></div></div>
+</div>
+
+<div id="cardGrid" class="card-grid"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentCards = [];
+    let currentSetId = "";
+
+    // 1. Fetch all sets on load
+    fetch('/api/sets')
+        .then(res => res.json())
+        .then(sets => {
+            const select = document.getElementById('setSelect');
+            select.innerHTML = '<option value="">-- Choose a Set --</option>';
+            sets.forEach(s => {
+                select.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+            });
+        });
+
+    function loadSetCards() {
+        const setId = document.getElementById('setSelect').value;
+        if (!setId) return;
+        currentSetId = setId;
+        
+        const grid = document.getElementById('cardGrid');
+        grid.innerHTML = '<p style="color:white; text-align:center;">Loading cards...</p>';
+        
+        // Use our existing API to get cards for this set
+        fetch('/api/cards', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+                set_id: setId,
+                per_page: 0  // Get all cards, no pagination
+            })
+        })
+        .then(res => res.json())
+        .then(cards => {
+            currentCards = cards;
+            renderGrid();
+            updateStats();
+        });
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('cardGrid');
+        const ownedData = JSON.parse(localStorage.getItem('myCollection') || '{}');
+        grid.innerHTML = '';
+        
+        currentCards.forEach(card => {
+            const isOwned = ownedData[card.localId + currentSetId];
+            const cardDiv = document.createElement('div');
+            cardDiv.className = `card-item ${isOwned ? 'owned' : ''}`;
+            cardDiv.onclick = () => toggleOwned(card.localId + currentSetId);
+            cardDiv.innerHTML = `
+                <img src="${card.image || 'https://images.pokemontcg.io/base1/symbol.png'}" alt="${card.name}">
+                <small style="display:block; font-weight:bold;">${card.name}</small>
+                <small>#${card.localId}</small>
+            `;
+            grid.appendChild(cardDiv);
+        });
+        document.getElementById('stats').style.display = 'block';
+    }
+
+    function toggleOwned(uniqueId) {
+        let ownedData = JSON.parse(localStorage.getItem('myCollection') || '{}');
+        ownedData[uniqueId] = !ownedData[uniqueId];
+        localStorage.setItem('myCollection', JSON.stringify(ownedData));
+        renderGrid();
+        updateStats();
+    }
+
+    function updateStats() {
+        const ownedData = JSON.parse(localStorage.getItem('myCollection') || '{}');
+        const count = currentCards.filter(c => ownedData[c.localId + currentSetId]).length;
+        const total = currentCards.length;
+        const percent = total > 0 ? (count / total) * 100 : 0;
+        
+        document.getElementById('counter').innerText = `Owned: ${count} / ${total}`;
+        document.getElementById('progressFill').style.width = percent + '%';
+        document.getElementById('setNameDisplay').innerText = document.getElementById('setSelect').selectedOptions[0].text;
+    }
+</script>
+{% endblock %}

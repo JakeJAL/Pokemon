@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Home - PokéPrice{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Section */
+    .hero {
+        text-align: center;
+        color: white;
+        padding: 3rem 0;
+    }
+    
+    .hero h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .hero p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+    }
+    
+    /* Feature Grid */
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+    
+    .feature-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        transition: transform 0.3s;
+        cursor: pointer;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+    }
+    
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #eab308 0%, #fbbf24 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .feature-card h3 {
+        color: #333;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .feature-card p {
+        color: #666;
+        line-height: 1.6;
+    }
+    
+    @media (max-width: 768px) {
+        .hero h1 {
+            font-size: 2rem;
+        }
+        
+        .feature-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Welcome to PokéPrice</h1>
+    <p>Your ultimate Pokemon TCG companion for finding the best deals and cards</p>
+</div>
+
+<div class="feature-grid">
+    <div class="feature-card" onclick="window.location.href='/price'">
+        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+        <h3>Price Comparison</h3>
+        <p>Compare prices across multiple retailers instantly. Find the best deals on booster packs and save money on your Pokemon TCG purchases.</p>
+    </div>
+    
+    <div class="feature-card" onclick="window.location.href='/search'">
+        <div class="feature-icon"><i class="fas fa-search"></i></div>
+        <h3>Card Finder</h3>
+        <p>Search for any Pokemon or card and discover which sets they appear in. Perfect for collectors completing their collections.</p>
+    </div>
+    
+    <div class="feature-card" onclick="window.location.href='/chat'">
+        <div class="feature-icon">
+            <img src="{{ url_for('static', filename='prof_oak.png') }}" alt="Professor Oak" style="width: 120px; height: auto; max-width: 100%; object-fit: contain;">
+        </div>
+        <h3>Chat with Professor Oak</h3>
+        <p>Get instant answers to your Pokemon TCG questions. Professor Oak is here to help with rules, card values, and recommendations.</p>
+    </div>
+</div>
+{% endblock %}
